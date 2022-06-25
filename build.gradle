@@ -1,0 +1,115 @@
+// Plugin's Version Configuration
+buildscript {
+    ext {
+        springBootVersion = property("springVersion")
+        dependencyManagementVersion = property("dependencyManagementVersion")
+        flywayPluginVersion = property("flywayPluginVersion")
+        avroPluginVersion = property("avroPluginVersion")
+    }
+    repositories {
+        mavenCentral()
+        maven {
+            url("https://plugins.gradle.org/m2/")
+        }
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("io.spring.gradle:dependency-management-plugin:${dependencyManagementVersion}")
+        classpath("gradle.plugin.org.flywaydb:gradle-plugin-publishing:${flywayPluginVersion}")
+        classpath("com.github.davidmc24.gradle.plugin:gradle-avro-plugin:${avroPluginVersion}")
+    }
+}
+
+// Plugins
+apply {
+    plugin('org.springframework.boot')
+    plugin('io.spring.dependency-management')
+    plugin('java')
+}
+
+// Variables
+String projectVersion = property("projectVersion")
+String groupName = property("groupName")
+String javaVersion = property("javaVersion")
+String mainClassName = property("mainClassName")
+String mainModule = property("mainModule")
+String projectReactorVersion = property("projectReactorVersion")
+String postgresDriverVersion = property("postgresDriverVersion")
+String postgresR2dbcDriverVersion = property("postgresR2dbcDriverVersion")
+String flywayVersion = property("flywayVersion")
+String confluentVersion = property("confluentVersion")
+String springKafkaVersion = property("springKafkaVersion")
+
+ext["spring-kafka.version"] = springKafkaVersion
+
+// Project Configuration
+group = groupName
+sourceCompatibility = javaVersion
+
+// Configuration for all projects
+allprojects {
+    apply {
+        plugin('org.springframework.boot')
+        plugin('io.spring.dependency-management')
+        plugin('java')
+    }
+
+    version = projectVersion
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    tasks.named("bootJar") {
+        mainClass = "${mainModule}.${mainClassName}"
+    }
+}
+
+// Configuration only for sub-projects
+subprojects {
+    repositories {
+        maven {
+            url("https://packages.confluent.io/maven/")
+        }
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+            mavenBom("org.springframework.boot:spring-boot-starter-parent:${springBootVersion}")
+        }
+
+        dependencies {
+            // Webservice
+            dependency("org.springframework.boot:spring-boot-starter-webflux:${springBootVersion}")
+            dependency("org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}")
+            dependency("io.projectreactor:reactor-test:${projectReactorVersion}")
+
+            // Database
+            dependency("org.springframework.boot:spring-boot-starter-data-r2dbc:${springBootVersion}")
+            dependency("org.postgresql:postgresql:${postgresDriverVersion}")
+            dependency("io.r2dbc:r2dbc-postgresql:${postgresR2dbcDriverVersion}")
+            dependency("org.flywaydb:flyway-core:${flywayVersion}")
+
+            // Kafka
+            dependency("io.confluent:kafka-schema-registry-client:$confluentVersion")
+            dependency("io.confluent:kafka-avro-serializer:$confluentVersion")
+            dependency("io.confluent:kafka-streams-avro-serde:$confluentVersion")
+
+            // Test
+            dependency("org.springframework.boot:spring-boot-starter-test:${springBootVersion}")
+        }
+    }
+
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+}
